@@ -6,6 +6,17 @@ Configured entirely via a browser, no code changes required.
 
 ![ESP32 CYD Stock Ticker showing 3 tickers](https://cdn.shopify.com/s/files/1/0870/0021/9940/files/20260617_125927.jpg?v=1781667798)
 
+## Changes in This Fork
+
+This fork adds an option to display each ticker's price change as either a percentage or a USD amount:
+
+- Enable **Show dollar change** in the browser configuration to switch from values such as `+1.25%` to `+$2.40`.
+- The selected format is used consistently in the ticker grid, ticker detail view, and browser dashboard.
+- The setting is saved in ESP32 non-volatile storage and remains selected after a restart. Percentage change remains the default.
+- USD change is calculated from the current price and previous close for stocks, or the reconstructed 24-hour opening price for crypto.
+
+The fork also changes the first default ticker from `AAPL` to `AMZN` and sets `TFT_INVERSION_OFF` in `User_Setup.h` for displays that require non-inverted colours.
+
 ## Demo
 
 [![ESP32 CYD Stock Ticker Demo](https://img.youtube.com/vi/qng6zG75FMI/maxresdefault.jpg)](https://www.youtube.com/watch?v=qng6zG75FMI)
