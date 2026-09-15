@@ -75,6 +75,7 @@ int    refreshSec    = DEFAULT_REFRESH;
 int    brightness    = 200;
 bool   darkMode      = true;
 bool   portfolioMode = false;
+bool   showDollarChange = false;
 
 
 // ─── Quote data ───────────────────────────────────────────────────────────────
@@ -172,6 +173,13 @@ String displaySym(const String &sym) {
   return sym;
 }
 
+String displayChange(const Quote &q) {
+  if (!showDollarChange) return String(q.pct >= 0 ? "+" : "") + String(q.pct, 2) + "%";
+
+  float change = q.price - q.open;
+  return String(change >= 0 ? "+$" : "-$") + String(fabs(change), 2);
+}
+
 
 // ─── Preferences (NVS) ───────────────────────────────────────────────────────
 // Settings are stored in the ESP32's built-in flash under the "ticker" namespace.
@@ -185,6 +193,7 @@ void loadPrefs() {
   brightness    = prefs.getInt("bright",       200);
   darkMode      = prefs.getBool("dark",        true);
   portfolioMode = prefs.getBool("portfolio",   false);
+  showDollarChange = prefs.getBool("changeusd", false);
   tickerCount   = prefs.getInt("tcount",       0);
   for (int i = 0; i < tickerCount; i++) {
     tickers[i]   = prefs.getString(("t"  + String(i)).c_str(), "");
@@ -196,7 +205,7 @@ void loadPrefs() {
 
   // First run — populate with three default tickers.
   if (tickerCount == 0) {
-    tickers[0] = "AAPL"; holdings[0] = 0; alertHigh[0] = 0; alertLow[0] = 0;
+    tickers[0] = "AMZN"; holdings[0] = 0; alertHigh[0] = 0; alertLow[0] = 0;
     tickers[1] = "MSFT"; holdings[1] = 0; alertHigh[1] = 0; alertLow[1] = 0;
     tickers[2] = "NVDA"; holdings[2] = 0; alertHigh[2] = 0; alertLow[2] = 0;
     tickerCount = 3;
@@ -217,6 +226,7 @@ void savePrefs() {
   prefs.putInt("bright",       brightness);
   prefs.putBool("dark",        darkMode);
   prefs.putBool("portfolio",   portfolioMode);
+  prefs.putBool("changeusd",   showDollarChange);
   prefs.putInt("tcount",       tickerCount);
   for (int i = 0; i < tickerCount; i++) {
     prefs.putString(("t"  + String(i)).c_str(), tickers[i]);
@@ -502,8 +512,8 @@ void drawQuoteGrid(int idx, Quote &q) {
   else if (q.price >= 0.01f) sprintf(priceBuf, "$%.4f",  q.price);
   else                        sprintf(priceBuf, "$%.6f",  q.price);
 
-  char pctBuf[12];
-  sprintf(pctBuf, "%+.2f%%", q.pct);
+  char pctBuf[16];
+  displayChange(q).toCharArray(pctBuf, sizeof(pctBuf));
 
   String symStr = displaySym(q.sym);
   int symW      = tft.textWidth(symStr,   fnt);
@@ -630,10 +640,10 @@ void drawDetail(int idx, Quote &q) {
   tft.drawString(buf, 10, 96, 6);
 
   // Percentage change — top right
-  sprintf(buf, "%+.2f%%", q.pct);
+  String changeText = displayChange(q);
   tft.setTextColor(pctColor, C_BG());
   tft.setTextDatum(TR_DATUM);
-  tft.drawString(buf, 312, 46, 4);
+  tft.drawString(changeText, 312, 46, 4);
 
   // Open price
   tft.setTextColor(C_MUTED(), C_BG());
@@ -795,8 +805,7 @@ void handleRoot() {
   for (int i = 0; i < tickerCount; i++) {
     String sym   = displaySym(quotes[i].sym);
     String price = quotes[i].valid ? "$" + String(quotes[i].price, 2) : "--";
-    String pct   = quotes[i].valid
-                   ? (quotes[i].pct >= 0 ? "+" : "") + String(quotes[i].pct, 2) + "%" : "--";
+    String pct   = quotes[i].valid ? displayChange(quotes[i]) : "--";
     String clr   = quotes[i].valid ? (quotes[i].pct >= 0 ? "#00cc44" : "#ff4444") : "#888";
     String arrow = quotes[i].valid
                    ? (quotes[i].pct > 0.05f ? "&#9650;" : quotes[i].pct < -0.05f ? "&#9660;" : "&mdash;")
@@ -842,6 +851,7 @@ void handleRoot() {
   const char* hint  = darkMode ? "#444"    : "#999";
   String dmChk = darkMode      ? " checked" : "";
   String pmChk = portfolioMode ? " checked" : "";
+  String dcChk = showDollarChange ? " checked" : "";
 
   String html =
     "<!DOCTYPE html><html><head>"
@@ -909,6 +919,10 @@ void handleRoot() {
       "<div class='row'>"
         "<input type='checkbox' name='darkmode' id='dm' value='1'" + dmChk + ">"
         "<label for='dm'>Dark mode</label>"
+      "</div>"
+      "<div class='row'>"
+        "<input type='checkbox' name='changeusd' id='dc' value='1'" + dcChk + ">"
+        "<label for='dc'>Show dollar change</label>"
       "</div>"
       "<div class='row'>"
         "<input type='checkbox' name='portfolio' id='pm' value='1'" + pmChk + ">"
@@ -984,6 +998,7 @@ void handleSave() {
 
   darkMode      = server.hasArg("darkmode");
   portfolioMode = server.hasArg("portfolio");
+  showDollarChange = server.hasArg("changeusd");
 
   savePrefs();
   fetchPending = true;
