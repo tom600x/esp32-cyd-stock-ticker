@@ -76,6 +76,7 @@ int    brightness    = 200;
 bool   darkMode      = true;
 bool   portfolioMode = false;
 bool   showDollarChange = false;
+bool   fetchLedEnabled = true;
 
 
 // ─── Quote data ───────────────────────────────────────────────────────────────
@@ -146,7 +147,7 @@ void setLED(bool r, bool g, bool b) {
 
 // Backlight brightness via PWM. Valid range: 10 (dim) – 255 (full).
 void applyBrightness() {
-  analogWriteFrequency(BL_PIN, 5000);
+  analogWriteFrequency(5000);
   analogWrite(BL_PIN, brightness);
 }
 
@@ -194,6 +195,7 @@ void loadPrefs() {
   darkMode      = prefs.getBool("dark",        true);
   portfolioMode = prefs.getBool("portfolio",   false);
   showDollarChange = prefs.getBool("changeusd", false);
+  fetchLedEnabled = prefs.getBool("fetchled",   true);
   tickerCount   = prefs.getInt("tcount",       0);
   for (int i = 0; i < tickerCount; i++) {
     tickers[i]   = prefs.getString(("t"  + String(i)).c_str(), "");
@@ -227,6 +229,7 @@ void savePrefs() {
   prefs.putBool("dark",        darkMode);
   prefs.putBool("portfolio",   portfolioMode);
   prefs.putBool("changeusd",   showDollarChange);
+  prefs.putBool("fetchled",   fetchLedEnabled);
   prefs.putInt("tcount",       tickerCount);
   for (int i = 0; i < tickerCount; i++) {
     prefs.putString(("t"  + String(i)).c_str(), tickers[i]);
@@ -387,7 +390,7 @@ void fetchTask(void* param) {
     if (fetchPending) {
       fetchPending = false;
       fetching     = true;
-      setLED(false, false, true); // blue = fetching
+      if (fetchLedEnabled) setLED(false, false, true); // blue = fetching
 
       fetchMarketStatus();
 
@@ -852,6 +855,7 @@ void handleRoot() {
   String dmChk = darkMode      ? " checked" : "";
   String pmChk = portfolioMode ? " checked" : "";
   String dcChk = showDollarChange ? " checked" : "";
+  String flChk = fetchLedEnabled ? " checked" : "";
 
   String html =
     "<!DOCTYPE html><html><head>"
@@ -928,6 +932,10 @@ void handleRoot() {
         "<input type='checkbox' name='portfolio' id='pm' value='1'" + pmChk + ">"
         "<label for='pm'>Portfolio mode (value &amp; P&amp;L)</label>"
       "</div>"
+      "<div class='row'>"
+        "<input type='checkbox' name='fetchled' id='fl' value='1'" + flChk + ">"
+        "<label for='fl'>Show blue LED while refreshing</label>"
+      "</div>"
     "</div>"
 
     "<div class='card'><h3>Holdings &amp; Alerts</h3>"
@@ -999,6 +1007,8 @@ void handleSave() {
   darkMode      = server.hasArg("darkmode");
   portfolioMode = server.hasArg("portfolio");
   showDollarChange = server.hasArg("changeusd");
+  fetchLedEnabled = server.hasArg("fetchled");
+  if (!fetchLedEnabled) setLED(false, false, false);
 
   savePrefs();
   fetchPending = true;

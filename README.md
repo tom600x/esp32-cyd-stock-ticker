@@ -29,6 +29,7 @@ The fork also changes the first default ticker from `AAPL` to `AMZN` and sets `T
 - Portfolio mode — track holdings value and day P&L
 - Price alerts with LED flash on breach
 - Dark and light mode
+- Optional blue LED indicator while refreshing
 - Full web UI for configuration — change tickers, refresh rate, brightness, holdings and alerts from any browser on your network
 - JSON API endpoint at `/api/quotes` for home automation integration
 - WiFiManager captive portal — no hardcoded credentials
@@ -78,6 +79,13 @@ Install via Arduino Library Manager:
 - WiFiManager (tzapu)
 
 Board: `ESP32 Dev Module` via ESP32 Arduino core
+
+### PlatformIO
+
+The repository includes `platformio.ini` for building from VS Code with the
+PlatformIO extension. Open the project folder, select the `esp32dev`
+environment, and use **Build** or **Upload**. The checked-in `User_Setup.h`
+is automatically used for the CYD display configuration.
 
 ## TFT_eSPI Configuration
 
